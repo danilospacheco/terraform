@@ -1,0 +1,33 @@
+provider "aws" {
+  version = "~>2.0"
+  region  = "us-east-1"
+  }
+
+
+resource "aws_instance" "dev" {
+    count = 3
+    ami = "ami-0996d3051b72b5b2c"
+    instance_type = "t2.micro"
+    key_name = "terraform-aws"
+    tags = {
+        name = "dev${count.index}"
+    }
+    vpc_security_group_ids = ["sg-0acba9922aa63c88e","sg-a452eb8d"]
+}
+
+resource "aws_security_group" "acesso-ssh" {
+  name        = "acesso-ssh"
+  description = "acesso-ssh"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["189.100.112.185/32"]
+  }
+
+  tags = {
+    Name = "ssh"
+  }
+}

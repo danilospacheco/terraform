@@ -1,44 +1,130 @@
+terraform {
+   required_providers {
+     aws = {
+       source = "hashicorp/aws"
+       version = "~>2.0"
+     }
+   }
+}
+
+terraform {
+  cloud {
+    organization = "danilolabs"
+    workspaces {
+      tags = ["aws-danilolabs"]
+    }
+  }
+}
+
+# Configure the AWS Provider
+
 provider "aws" {
-  version = "~>2.0"
+  insecure = true
+#  version = "~>2.0"
   region  = "us-east-1"
   }
 
+
+provider "aws" {
+  alias = "us-east-2"
+  insecure = true
+ # version = "~>2.0"
+  region  = "us-east-2"
+  }
 
 resource "aws_instance" "dev" {
     count = 3
     ami = "ami-0e472ba40eb589f49"
     instance_type = "t2.micro"
-    key_name = "new-terraform-aws"
+    key_name = var.key_name
     tags = {
         name = "dev${count.index}"
     }
-    vpc_security_group_ids = ["sg-09e21abfbc42d1c8d"]
+    vpc_security_group_ids = ["${aws_security_group.estudo-acesso-ssh.id}"]
+}
+/*
+resource "aws_instance" "dev4" {
+    ami = "ami-0e472ba40eb589f49"
+    instance_type = "t2.micro"
+    key_name = var.key_name
+    tags = {
+        name = "dev4"
+    }
+    vpc_security_group_ids = ["${aws_security_group.estudo-acesso-ssh.id}"]
+    depends_on = [aws_s3_bucket.dev4
+    ]
+}
+*/
+
+resource "aws_instance" "dev5" {
+    ami = var.amis["us-east-1"]
+    instance_type = "t2.micro"
+    key_name = var.key_name
+    tags = {
+        name = "dev5"
+    }
+    vpc_security_group_ids = ["${aws_security_group.estudo-acesso-ssh.id}"]
 }
 
-resource "aws_security_group" "new-acesso-ssh" {
-  name        = "new-acesso-ssh"
-  description = "new-acesso-ssh"
-  #vpc_id      = aws_vpc.main.id
+resource "aws_instance" "dev6" {
+    provider = aws.us-east-2
+    ami = var.amis["us-east-2"]
+    instance_type = "t2.micro"
+    key_name = var.key_name
+    tags = {
+        name = "dev6"
+    }
+    vpc_security_group_ids = ["${aws_security_group.estudo-acesso-ssh-us-east-2.id}"]
+    depends_on = [aws_dynamodb_table.dynamodb-homologacao]
+}
 
-  ingress {
-    description      = "TLS from VPC"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    #cidr_blocks      = ["163.116.224.113/32"]
-    cidr_blocks      = ["0.0.0.0/0"]
-    #ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
+
+resource "aws_instance" "dev7" {
+    provider = aws.us-east-2
+    ami = var.amis["us-east-2"]
+    instance_type = "t2.micro"
+    key_name = var.key_name
+    tags = {
+        name = "dev7"
+    }
+    vpc_security_group_ids = ["${aws_security_group.estudo-acesso-ssh-us-east-2.id}"]
+    
+}
+
+/*
+resource "aws_s3_bucket" "dev4" {
+  bucket = "danilolabs-dev4"
+  acl = "private"
+  
+  tags = {
+    name = "danilolabs-dev4"
+  }
+}
+*/
+
+resource "aws_s3_bucket" "homologacao" {
+  bucket = "danilolabs-homologacao"
+  acl = "private"
+  
+  tags = {
+    name = "danilolabs-homologacao"
+  }
+}
+
+resource "aws_dynamodb_table" "dynamodb-homologacao" {
+  provider = aws.us-east-2
+  name           = "GameScores"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "UserId"
+  range_key      = "GameTitle"
+
+  attribute {
+    name = "UserId"
+    type = "S"
   }
 
-  #egress {
-  #  from_port        = 0
-  #  to_port          = 0
-  #  protocol         = "-1"
-  #  cidr_blocks      = ["0.0.0.0/0"]
-  #  ipv6_cidr_blocks = ["::/0"]
-  #}
-
-  tags = {
-    Name = "ssh"
+  attribute {
+    name = "GameTitle"
+    type = "S"
   }
 }
